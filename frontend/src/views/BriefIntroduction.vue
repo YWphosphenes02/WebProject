@@ -29,7 +29,7 @@
   <style scoped>
   .brief-introduction {
     padding: 60px;
-    text-align: middle;
+    text-align: left;
     color: #333;
     background-color: rgba(255, 255, 255, 0.489);
     border-radius: 10px;

@@ -181,12 +181,7 @@
         } else {
           importanceText.classList.remove('visible');
         }
-        // 控制箭头显示
-        if (scrollPosition + windowHeight >= totalHeight || scrollPosition > 100) {
-          this.showArrows = false; // 滑动到底部或者超过100px时隐藏箭头
-        } else {
-          this.showArrows = true; // 在顶部时显示箭头
-        }
+        
       }
     }
   }

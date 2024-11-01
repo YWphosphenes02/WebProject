@@ -43,7 +43,7 @@ export default {
   methods: {
     async fetchArticles(keyword) {
       try {
-        const response = await axios.get(`http://localhost:5000/api/wiki/search?keyword=${keyword}`); // 修改为后端端口5000
+        const response = await axios.get(`http://127.0.0.1:5000/api/wiki/search?keyword=${keyword}`); // 修改为后端端口5000
         this.articles = response.data; // 后端返回文章列表
       } catch (error) {
         console.error('搜索文章失败:', error);

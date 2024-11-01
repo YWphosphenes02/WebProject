@@ -5,6 +5,7 @@ import axios from 'axios'
 
 const isSearchExpanded = ref(false)
 const searchQuery = ref('')
+const host = "http://127.0.0.1:5000"
 
 // 用于保存登录状态
 const isLoggedIn = ref(false)
@@ -21,7 +22,7 @@ function collapseSearch() {
 async function performSearch() {
   if (searchQuery.value) {
     try {
-      const response = await axios.get(`/api/wiki/search`, { params: { keyword: searchQuery.value } })
+      const response = await axios.get(`${host}/api/wiki/search`, { params: { keyword: searchQuery.value } })
       console.log('Search results:', response.data)
     } catch (error) {
       console.error('Error searching:', error)
@@ -32,7 +33,7 @@ async function performSearch() {
 // 检查用户登录状态
 async function checkLoginStatus() {
   try {
-    const response = await axios.get('/api/check-login')
+    const response = await axios.get(`${host}/api/check-login`)
     isLoggedIn.value = response.data.loggedIn
   } catch (error) {
     console.error('Error checking login status:', error)
@@ -42,7 +43,7 @@ async function checkLoginStatus() {
 // 登出功能
 async function logout() {
   try {
-    await axios.post('/api/logout')  // 调用后端登出 API
+    await axios.post(`${host}/api/logout`)  // 调用后端登出 API
     isLoggedIn.value = false  // 更新状态为未登录
   } catch (error) {
     console.error('Error logging out:', error)
@@ -107,7 +108,7 @@ onMounted(() => {
       <ul class="nav-right">
         <li v-if="!isLoggedIn" class="menu-item"><router-link to="/login">登录</router-link></li>
         <li v-if="!isLoggedIn" class="menu-item"><router-link to="/register">注册</router-link></li>
-        <li v-if="isLoggedIn" class="menu-item"><a @click="logout">注销</a></li>
+        <li v-if="isLoggedIn" class="menu-item"><a @click="logout">登出</a></li>
       </ul>
     </nav>
 

@@ -6,10 +6,11 @@ import { useRouter } from 'vue-router'
 const email = ref('')
 const password = ref('')
 const router = useRouter()
+const host = "http://127.0.0.1:5000"
 
 async function login() {
   try {
-    const response = await axios.post('/api/login', {
+    const response = await axios.post(`${host}/api/login`, {
       email: email.value,
       password: password.value,
     })
@@ -18,6 +19,7 @@ async function login() {
     router.push('/')
   } catch (error) {
     console.error('Login error:', error)
+    alert(error.response.data.error || '登录失败，请重试')
   }
 }
 </script>

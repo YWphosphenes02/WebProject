@@ -7,6 +7,7 @@ const email = ref('')
 const password = ref('')
 const confirmPassword = ref('')
 const router = useRouter()
+const host = "http://127.0.0.1:5000"
 
 async function register() {
   if (password.value !== confirmPassword.value) {
@@ -15,7 +16,7 @@ async function register() {
   }
 
   try {
-    const response = await axios.post('/api/register', {
+    const response = await axios.post(`${host}/api/register`, {
       email: email.value,
       password: password.value,
     })
@@ -24,6 +25,8 @@ async function register() {
     router.push('/login')
   } catch (error) {
     console.error('Register error:', error)
+    alert(error.response.data.error || '注册失败，请重试')
+    
   }
 }
 </script>

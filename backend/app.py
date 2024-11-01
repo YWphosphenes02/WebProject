@@ -17,7 +17,7 @@ from flask_cors import CORS
 
 app = Flask(__name__)
 CORS(app)  # 允许所有来源的跨域请求
-app.secret_key = 'your_secret_key'
+app.secret_key = 'dev_secret_key' # 由于是比赛项目，所以这里的密钥是随便设置的，请不要在生产环境中使用此密钥
 login_manager = LoginManager()
 login_manager.init_app(app)
 
@@ -41,32 +41,41 @@ def load_user(user_id):
     return None
 
 # 注册路由
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-        if users_collection.find_one({"username": username}):
-            flash('Username already exists.')
-        else:
-            hashed_password = generate_password_hash(password)
-            users_collection.insert_one({"username": username, "password": hashed_password, "admin": False})
-            return redirect(url_for('login'))
-    return render_template('register.html')
+@app.route('/api/register', methods=['POST'])
+def api_register():
+    data = request.json
+    email = data.get('email')
+    password = data.get('password')
+    
+    if users_collection.find_one({"username": email}):
+        return jsonify({"error": "Email already exists."}), 400
+    
+    hashed_password = generate_password_hash(password)
+    users_collection.insert_one({"username": email, "password": hashed_password, "admin": False})
+    return jsonify({"message": "Registration successful."}), 201
+
 
 # 登录路由
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-        user_data = users_collection.find_one({"username": username})
-        if user_data and check_password_hash(user_data['password'], password):
-            user = User(str(user_data['_id']), user_data.get('admin', False))
-            login_user(user)
-            return redirect(url_for('index'))
-        flash('Invalid username or password')
-    return render_template('login.html')
+@app.route('/api/login', methods=['POST'])
+def api_login():
+    data = request.json
+    email = data.get('email')
+    password = data.get('password')
+    
+    user_data = users_collection.find_one({"username": email})
+    if user_data and check_password_hash(user_data['password'], password):
+        user = User(str(user_data['_id']), user_data.get('admin', False))
+        login_user(user)
+        return jsonify({"message": "Login successful."}), 200
+    return jsonify({"error": "Invalid credentials."}), 401
+
+# 登出路由
+@app.route('/api/logout', methods=['POST'])
+@login_required
+def api_logout():
+    logout_user()
+    return jsonify({"message": "Logout successful."}), 200
+
 
 # 首页，渲染查询页面
 @app.route('/')
