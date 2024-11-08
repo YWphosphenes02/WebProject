@@ -10,12 +10,17 @@ const host = "http://127.0.0.1:5000"
 
 async function login() {
   try {
-    const response = await axios.post(`${host}/api/login`, {
+    const response = await axios.post(`${host}/login`, {
       email: email.value,
       password: password.value,
     })
     console.log('Login success:', response.data)
-    // 登录成功后可以导航到首页或其他页面
+    // 将token存储到cookies中
+    if (response.headers['set-cookie']) {
+      const cookies = response.headers['set-cookie'].map(cookie => cookie.split(';')[0]).join('; ')
+      document.cookie = cookies
+    }
+    // 登录成功后导航到首页
     router.push('/')
   } catch (error) {
     console.error('Login error:', error)
@@ -63,7 +68,7 @@ input {
   padding: 8px;
   border-radius: 20px;
   border: 1px solid #ccc;
-  color: #ffffff8e;
+  color: #000000;
 }
 
 button {

@@ -1,197 +1,269 @@
-#pip install Flask-Login 处理用户登录
-#pip install Flask pymongo markdown 处理 Markdown 文本、MongoDB 数据库、Flask 应用
-#pip install Werkzeug 处理密码哈希
-
-
-from flask import Flask, jsonify, request, render_template, redirect, url_for, flash
-from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from pymongo import MongoClient
-from bson.objectid import ObjectId
-from datetime import datetime
-import markdown
-from werkzeug.security import generate_password_hash, check_password_hash
+import uuid
+from flask import request, Flask, make_response, abort, jsonify
 from flask_cors import CORS
+from datetime import datetime, timezone
 
+# 设置 MongoDB 连接 URI
+uri = "mongodb://localhost:27017/"
+client = MongoClient(uri)  # 创建 MongoClient 实例
 
+# 选择数据库和集合
+database = client["database"]
+users_collection = database["users"]  # 用户集合
+articles_collection = database["articles"]  # 文章集合
 
+app = Flask(__name__)  # 创建 Flask 应用实例
+CORS(app)  # 允许跨源请求
 
-app = Flask(__name__)
-CORS(app)  # 允许所有来源的跨域请求
-app.secret_key = 'dev_secret_key' # 由于是比赛项目，所以这里的密钥是随便设置的，请不要在生产环境中使用此密钥
-login_manager = LoginManager()
-login_manager.init_app(app)
+# 错误代码字典，存储各种错误的描述信息
+ErrorCode = {
+    '10000': 'Success',
+    '10011': '该账号已被注册',  # 账号已存在
+    '10012': '该账号尚未注册',  # 账号不存在
+    '10013': '密码错误',  # 密码验证失败
+    '10014': '身份校验未通过',  # 身份验证失败
+    '10021': '操作失败',  # 操作未成功
+    '10022': '无权限'  # 权限不足
+}
 
-# 连接到 MongoDB
-client = MongoClient('mongodb://localhost:27017/')
-db = client['wikiDB']
-users_collection = db['users']  # 用户集合
-collection = db['wikis']  # Wiki集合
+# 密码不明文直接存储，选择生成一个 token 来验证身份
+def generateToken(email, password):
+    return email + password  # 直接返回用户名和密码作为 token
 
-# 用户类
-class User(UserMixin):
-    def __init__(self, id, admin=False):
-        self.id = id
-        self.admin = admin
+def encryptText(text):
+    return text  # 直接返回明文密码
+    pass  # 实现加密逻辑
 
-@login_manager.user_loader
-def load_user(user_id):
-    user_data = users_collection.find_one({"_id": ObjectId(user_id)})
-    if user_data:
-        return User(user_id, user_data.get('admin', False))
-    return None
+# 检查用户名是否已存在
+def checkIfUserNameExist(email):
+    return bool(users_collection.find_one({"email": email}))  # 查找用户
 
-# 注册路由
-@app.route('/api/register', methods=['POST'])
-def api_register():
-    data = request.json
-    email = data.get('email')
-    password = data.get('password')
+# 用户注册功能
+def user_register(email, password, permissions="guest"):
+    if checkIfUserNameExist(email):
+        return (False, 10011)  # 用户名已存在
     
-    if users_collection.find_one({"username": email}):
-        return jsonify({"error": "Email already exists."}), 400
-    
-    hashed_password = generate_password_hash(password)
-    users_collection.insert_one({"username": email, "password": hashed_password, "admin": False})
-    return jsonify({"message": "Registration successful."}), 201
+    # 生成用户 ID （自增）
+    userId = str(len(list(users_collection.find())) + 10001)
+    token = generateToken(email, encryptText(password))  # 生成 token
 
+    # 创建用户数据
+    insert_data = {
+        "_id": userId,
+        "email": email,
+        "password": encryptText(password),  # 存储加密后的密码
+        "token": token,
+        "permissions": permissions  # 用户权限
+    }
 
-# 登录路由
-@app.route('/api/login', methods=['POST'])
-def api_login():
-    data = request.json
-    email = data.get('email')
-    password = data.get('password')
-    
-    user_data = users_collection.find_one({"username": email})
-    if user_data and check_password_hash(user_data['password'], password):
-        user = User(str(user_data['_id']), user_data.get('admin', False))
-        login_user(user)
-        return jsonify({"message": "Login successful."}), 200
-    return jsonify({"error": "Invalid credentials."}), 401
+    # 插入用户数据到数据库
+    users_collection.insert_one(insert_data)
+    return (True, userId, email, token)  # 返回成功信息
 
-# 登出路由
-@app.route('/api/logout', methods=['POST'])
-@login_required
-def api_logout():
-    logout_user()
-    return jsonify({"message": "Logout successful."}), 200
+# 用户登录功能
+def user_login(email, password):
+    user = users_collection.find_one({"email": email})  # 查找用户是否存在
 
+    if not user:
+        return (False, 10012)  # 用户未注册
 
-# 首页，渲染查询页面
-@app.route('/')
-def index():
-    return render_template('index.html')
+    # 验证密码
+    if user["password"] == encryptText(password):
+        return (True, user["_id"], user["email"], user["token"])  # 登录成功
+    else:
+        return (False, 10013)  # 密码错误
 
-# 创建新的 Wiki 信息
-def create_wiki(title, content):
-    new_wiki = {
+# 一个管理员账号
+def superuser():
+    if not checkIfUserNameExist("admin@example.com"):
+        user_register("admin@example.com", "L@shdOH*sa#aqncsp", "admin")  # 创建 admin 用户
+    return user_login("admin@example.com", "L@shdOH*sa#aqncsp")  # 返回 admin 登录信息
+
+# 添加文章功能
+def article_insert(title, content, author, category, create_time):
+    article_id = uuid.uuid4().hex  # 生成唯一的文章 ID
+
+    # 创建文章数据
+    insert_data = {
+        "_id": article_id,
         "title": title,
         "content": content,
-        "createdAt": datetime.now()
+        "author": author,
+        "category": category,
+        "create_time": create_time
     }
-    result = collection.insert_one(new_wiki)
-    return str(result.inserted_id)
 
-# 获取所有 Wiki 信息
-def get_wikis():
-    wikis = list(collection.find())
-    for wiki in wikis:
-        wiki['_id'] = str(wiki['_id'])
-        wiki['content_html'] = markdown.markdown(wiki['content'])
-    return wikis
+    # 将文章数据插入到数据库
+    articles_collection.insert_one(insert_data)
+    return (True, article_id)  # 返回成功信息
 
-# 根据 ID 获取 Wiki 信息
-def get_wiki_by_id(wiki_id):
-    wiki = collection.find_one({"_id": ObjectId(wiki_id)})
-    if wiki:
-        wiki['_id'] = str(wiki['_id'])
-        wiki['content_html'] = markdown.markdown(wiki['content'])
-        return wiki
-    return None
+# 获取所有文章
+def articles_get_all():
+    articles = list(articles_collection.find())  # 从数据库中查找所有文章
+    return articles  # 返回文章列表
 
-# 更新 Wiki 信息
-def update_wiki(wiki_id, title, content):
-    result = collection.update_one(
-        {"_id": ObjectId(wiki_id)},
-        {"$set": {"title": title, "content": content, "updatedAt": datetime.now()}}
-    )
-    return result.modified_count > 0
+# 根据文章 ID 获取特定文章
+def article_get_by_id(article_id):
+    article = articles_collection.find_one({"_id": article_id})  # 根据 ID 查找文章
+    return article  # 返回文章信息
 
-# 删除 Wiki 信息
-def delete_wiki(wiki_id):
-    result = collection.delete_one({"_id": ObjectId(wiki_id)})
-    return result.deleted_count > 0
+# 根据类别获取文章
+def articles_get_by_category(category):
+    articles = list(articles_collection.find({"category": category}))  # 根据类别查找文章
+    return articles  # 返回文章列表
 
-# 根据关键词查询 Wiki
-def search_wiki(keyword):
-    keyword = keyword.strip()
-    if not keyword:
-        return []
-    
-    wikis = list(collection.find({
-        "$or": [
-            {"title": {"$regex": keyword, "$options": "i"}},
-            {"content": {"$regex": keyword, "$options": "i"}}
-        ]
-    }))
-    
-    for wiki in wikis:
-        wiki['_id'] = str(wiki['_id'])
-        wiki['content_html'] = markdown.markdown(wiki['content'])
-    return wikis
+# 根据文章 ID 删除特定文章
+def article_delete_by_id(article_id):
+    result = articles_collection.delete_one({"_id": article_id})  # 删除文章
+    return result.deleted_count == 1  # 返回删除结果
 
-# API 路由
-@app.route('/api/wiki', methods=['GET'])
-def api_get_wikis():
-    return jsonify(get_wikis()), 200
+# 根据文章 ID 更新特定文章
+def article_update_by_id(article_id, title, content, category):
+    result = articles_collection.update_one({"_id": article_id}, {"$set": {"title": title, "content": content, "category": category}})
+    return result.modified_count == 1  # 返回更新结果
 
-@app.route('/api/wiki/<id>', methods=['GET'])
-def api_get_wiki(id):
-    wiki = get_wiki_by_id(id)
-    if wiki:
-        return jsonify(wiki), 200
-    return jsonify({"error": "Wiki not found"}), 404
+# 获取用户权限
+def get_permission(token):
+    user = users_collection.find_one({"token": token})  # 根据 token 查找用户
+    if not user:
+        return (False, 10014)  # 身份校验未通过
+    return (True, user["permissions"])  # 返回用户权限
 
-@app.route('/api/wiki/search', methods=['GET'])
-def api_search_wiki():
-    keyword = request.args.get('keyword', '')
-    results = search_wiki(keyword)
-    return jsonify(results), 200
+# 用户注册接口
+# 传入 data: { email: str, password: str[, permissions: str] } 
+# 成功则返回 { userid: str, email: str, token: str }
+@app.route('/register', methods=['POST'])
+def register():
+    data = request.form.to_dict()  # 获取请求的 JSON 数据
+    if not data or 'email' not in data or 'password' not in data:
+        return make_response({"error": "Missing email or password"}, 400)  # 请求数据缺失，返回 400
 
-@app.route('/api/wiki', methods=['POST'])
-@login_required
-def api_create_wiki():
-    if not current_user.admin:  # 仅允许管理员进行创建
-        return jsonify({"error": "Unauthorized"}), 403
-    title = request.json.get('title')
-    content = request.json.get('content')
-    new_id = create_wiki(title, content)
-    return jsonify({"id": new_id}), 201
+    result = user_register(data["email"], data["password"], data.get("permissions", "guest"))  # 注册用户
 
-@app.route('/api/wiki/<id>', methods=['PUT'])
-@login_required
-def api_update_wiki(id):
-    if not current_user.admin:  # 仅允许管理员进行更新
-        return jsonify({"error": "Unauthorized"}), 403
-    title = request.json.get('title')
-    content = request.json.get('content')
-    result = update_wiki(id, title, content)
+    if result[0]:
+        return make_response({"user_id": result[1], "email": result[2], "token": result[3]}, 201)  # 注册成功，返回 201
+    else:
+        return make_response({"error": ErrorCode[str(result[1])]}, 400)  # 注册失败，返回 400
+
+# 用户登录接口
+# 传入 data: { email: str, password: str} 
+# 成功则返回 { userid: str, email: str, token: str }
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.form.to_dict()  # 获取请求的 JSON 数据
+    if not data or 'email' not in data or 'password' not in data:
+        return make_response({"error": "Missing email or password"}, 400)  # 请求数据缺失，返回 400
+
+    result = user_login(data["email"], data["password"])  # 登录用户
+
+    if result[0]:
+        return make_response({"user_id": result[1], "email": result[2], "token": result[3]}, 200)  # 登录成功，返回 200
+    else:
+        return make_response({"error": ErrorCode[str(result[1])]}, 401)  # 登录失败，返回 401
+
+# 修改文章接口
+# 传入 data: { id: str, title: str, content: str, category: str } 
+# 成功则返回 { content: str }
+@app.route('/update', methods=['POST'])
+def update():
+    token = request.cookies.get("token")  # 获取用户的 token
+    permission = get_permission(token)  # 获取用户权限
+
+    if not permission[0]:
+        return make_response({"error": ErrorCode[str(permission[1])]}, 403)  # 身份校验未通过，返回 403
+
+    if permission[1] == 'guest':
+        return make_response({"error": ErrorCode['10022']}, 403)  # 权限不足，返回 403
+
+    data = request.form.to_dict()  # 获取请求的 JSON 数据
+    if not data or 'id' not in data or 'title' not in data or 'content' not in data or 'category' not in data:
+        return make_response({"error": "Missing article data"}, 400)  # 请求数据缺失，返回 400
+
+    result = article_update_by_id(data["id"], data["title"], data["content"], data["category"])  # 更新文章
+
     if result:
-        return jsonify({"message": "Wiki updated"}), 200
-    return jsonify({"error": "Wiki not found"}), 404
+        return make_response(data["content"], 200)  # 更新成功，返回 200
+    else:
+        return make_response({"error": ErrorCode['10021']}, 400)  # 更新失败，返回 400
 
-@app.route('/api/wiki/<id>', methods=['DELETE'])
-@login_required
-def api_delete_wiki(id):
-    if not current_user.admin:  # 仅允许管理员进行删除
-        return jsonify({"error": "Unauthorized"}), 403
-    result = delete_wiki(id)
+# 删除文章接口
+# 传入 data: { id: str } 
+# 成功则返回 { success }
+@app.route('/delete', methods=['POST'])
+def delete():
+    token = request.cookies.get("token")  # 获取用户的 token
+    permission = get_permission(token)  # 获取用户权限
+
+    if not permission[0]:
+        return make_response({"error": ErrorCode[str(permission[1])]}, 403)  # 身份校验未通过，返回 403
+
+    if permission[1] != 'admin':
+        return make_response({"error": ErrorCode['10022']}, 403)  # 权限不足，返回 403
+
+    data = request.form.to_dict()  # 获取请求的 JSON 数据
+    if not data or 'id' not in data:
+        return make_response({"error": "Missing article ID"}, 400)  # 请求数据缺失，返回 400
+
+    result = article_delete_by_id(data["id"])  # 删除文章
+
     if result:
-        return jsonify({"message": "Wiki deleted"}), 200
-    return jsonify({"error": "Wiki not found"}), 404
+        return make_response({"message": "success"}, 200)  # 删除成功，返回 200
+    else:
+        return make_response({"error": ErrorCode['10021']}, 400)  # 删除失败，返回 400
 
-# 启动应用
-if __name__ == "__main__":
-    app.run(port=5000)
+# 添加文章接口
+# 传入 data: { title: str, content: str, author: str, category: str, create_time: str } 
+# 成功则返回 { article_id: str }
+@app.route('/insert', methods=['POST'])
+def insert():
+    token = request.cookies.get("token")  # 获取用户的 token
+    permission = get_permission(token)  # 获取用户权限
 
+    if not permission[0]:
+        return make_response({"error": ErrorCode[str(permission[1])]}, 403)  # 身份校验未通过，返回 403
 
+    if permission[1] != 'admin':
+        return make_response({"error": ErrorCode['10022']}, 403)  # 权限不足，返回 403
+
+    data = request.form.to_dict()  # 获取请求的 JSON 数据
+    if not data or 'title' not in data or 'content' not in data or 'author' not in data or 'category' not in data or 'create_time' not in data:
+        return make_response({"error": "Missing article data"}, 400)  # 请求数据缺失，返回 400
+
+    result = article_insert(data["title"], data["content"], data["author"], data["category"], data["create_time"])  # 插入文章
+
+    if result[0]:
+        return make_response({"article_id": result[1]}, 201)  # 插入成功，返回 201
+    else:
+        return make_response({"error": ErrorCode['10021']}, 400)  # 插入失败，返回 400
+
+# 获取所有文章接口 
+# todo: 实现分页、清洗数据只留下 id 和标题，其他的不用返回
+# 成功则返回 { articles }
+@app.route('/get_all_articles', methods=['GET'])
+def get_all_articles():
+    articles = articles_get_all()  # 获取所有文章
+    return make_response(articles, 200)  # 返回文章列表，状态码 200
+
+# 根据 ID 获取文章接口
+@app.route('/get_article_by_id', methods=['GET'])
+def get_article_by_id():
+    article_id = request.args.get("id")  # 从查询参数获取文章 ID
+    if not article_id:
+        return make_response({"error": "Missing article ID"}, 400)  # 请求数据缺失，返回 400
+
+    article = article_get_by_id(article_id)  # 获取文章
+    if article:
+        return make_response(article, 200)  # 文章存在，返回 200
+    else:
+        return make_response({"error": "Article not found"}, 404)  # 文章不存在，返回 404
+
+# 根据类别获取文章接口
+@app.route('/get_articles_by_category', methods=['GET'])
+def get_articles_by_category():
+    category = request.args.get("category")  # 从查询参数获取类别
+    if not category:
+        return make_response({"error": "Missing category"}, 400)  # 请求数据缺失，返回 400
+
+    articles = articles_get_by_category(category)  # 获取该类别的文章
+    return make_response(articles, 200)  # 返回文章列表，状态码 200

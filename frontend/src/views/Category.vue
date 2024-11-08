@@ -15,6 +15,7 @@
 
 <script>
 import axios from 'axios';
+const host = "http://127.0.0.1:5000"
 
 export default {
   props: ['name'], // 接收从路由传递的参数
@@ -43,8 +44,8 @@ export default {
   methods: {
     async fetchArticles(keyword) {
       try {
-        const response = await axios.get(`http://127.0.0.1:5000/api/wiki/search?keyword=${keyword}`); // 修改为后端端口5000
-        this.articles = response.data; // 后端返回文章列表
+        const response = await axios.get(`${host}/get_articles_by_category?keyword=${keyword}`); 
+        this.articles = response.data;
       } catch (error) {
         console.error('搜索文章失败:', error);
       }

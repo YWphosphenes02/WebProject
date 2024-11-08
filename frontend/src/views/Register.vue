@@ -16,17 +16,21 @@ async function register() {
   }
 
   try {
-    const response = await axios.post(`${host}/api/register`, {
+    const response = await axios.post(`${host}/register`, {
       email: email.value,
       password: password.value,
     })
     console.log('Register success:', response.data)
+    // 将token存储到cookies中
+    if (response.headers['set-cookie']) {
+      const cookies = response.headers['set-cookie'].map(cookie => cookie.split(';')[0]).join('; ')
+      document.cookie = cookies
+    }
     // 注册成功后导航到登录页面
     router.push('/login')
   } catch (error) {
     console.error('Register error:', error)
     alert(error.response.data.error || '注册失败，请重试')
-    
   }
 }
 </script>
@@ -49,7 +53,7 @@ async function register() {
       </div>
       <button type="submit">注册</button>
     </form>
-    <p>已有账户？<router-link to="/login"style="color: #2a9f76;">登录</router-link></p>
+    <p>已有账户？<router-link to="/login" style="color: #2a9f76;">登录</router-link></p>
   </div>
 </template>
 

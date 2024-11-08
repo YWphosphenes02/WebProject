@@ -1,9 +1,10 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import Home from '../views/Home.vue';        // 路径指向 views 文件夹
+import Home from '../views/Home.vue';       
 import Category from '../views/Category.vue';
 import Login from '../views/Login.vue';
 import Register from '../views/Register.vue';
 import BriefIntroduction from '../views/BriefIntroduction.vue'
+import Contact from '../views/Contact.vue'; 
 
 const routes = [
   { path: '/', component: Home },
@@ -11,6 +12,8 @@ const routes = [
   { path: '/brief-introduction', component: BriefIntroduction},
   {path: '/login',name: 'Login',component: Login,},
   {path: '/register',name: 'Register',component: Register,}, 
+  {path: '/contact',name: 'Contact',component: Contact,},
+  
 ];
 
 const router = createRouter({

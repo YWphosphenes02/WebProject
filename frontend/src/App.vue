@@ -22,7 +22,7 @@ function collapseSearch() {
 async function performSearch() {
   if (searchQuery.value) {
     try {
-      const response = await axios.get(`${host}/api/wiki/search`, { params: { keyword: searchQuery.value } })
+      const response = await axios.get(`${host}/search`, { params: { keyword: searchQuery.value } })
       console.log('Search results:', response.data)
     } catch (error) {
       console.error('Error searching:', error)
@@ -33,7 +33,7 @@ async function performSearch() {
 // 检查用户登录状态
 async function checkLoginStatus() {
   try {
-    const response = await axios.get(`${host}/api/check-login`)
+    const response = await axios.get(`${host}/check-login`)
     isLoggedIn.value = response.data.loggedIn
   } catch (error) {
     console.error('Error checking login status:', error)
@@ -43,7 +43,7 @@ async function checkLoginStatus() {
 // 登出功能
 async function logout() {
   try {
-    await axios.post(`${host}/api/logout`)  // 调用后端登出 API
+    await axios.post(`${host}/logout`)  // 调用后端登出 API
     isLoggedIn.value = false  // 更新状态为未登录
   } catch (error) {
     console.error('Error logging out:', error)
