@@ -10,11 +10,32 @@ const searchQuery = ref('')
 const host = "http://127.0.0.1:5000"
 const isLoggedIn = ref(false)
 
+// 切换搜索栏展开和收起状态
+function toggleSearch() {
+  isSearchExpanded.value = !isSearchExpanded.value
+}
+
+// 收起搜索栏
+function collapseSearch() {
+  isSearchExpanded.value = false
+}
+
+// 执行搜索
+async function performSearch() {
+  if (searchQuery.value) {
+    try {
+      const response = await axios.get(`${host}/search`, { params: { keyword: searchQuery.value } })
+      console.log('Search results:', response.data)
+      // 处理搜索结果，例如导航到搜索结果页面
+    } catch (error) {
+      console.error('Error searching:', error)
+    }
+  }
+}
+
 // 保存登录状态
 function checkLoginStatus() {
-  // 从 cookies 中获取 token
   const token = Cookies.get('token');
-  // 更新登录状态
   isLoggedIn.value = !!token; 
 }
 
