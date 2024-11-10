@@ -1,33 +1,33 @@
 <script setup>
-import { RouterLink, RouterView } from 'vue-router'
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
-import { useCookies } from 'vue-cookies' // 确保安装了 vue-cookies
+import Cookies from 'js-cookie'
+import { useRouter } from 'vue-router'
 
-const [cookies] = useCookies()
+const router = useRouter()
 const isSearchExpanded = ref(false)
 const searchQuery = ref('')
 const host = "http://127.0.0.1:5000"
 const isLoggedIn = ref(false)
 
-// 用于保存登录状态
+// 保存登录状态
 function checkLoginStatus() {
-  const token = cookies.get('token');
-  isLoggedIn.value = !!token; // 如果 token 存在，则用户已登录
+  // 从 cookies 中获取 token
+  const token = Cookies.get('token');
+  // 更新登录状态
+  isLoggedIn.value = !!token; 
 }
 
 // 登出功能
 function logout() {
-  cookies.remove('token'); // 清除 cookies 中的 token
-  isLoggedIn.value = false; // 更新状态为未登录
-  router.push('/'); // 重定向到首页
+  Cookies.remove('token'); 
+  isLoggedIn.value = false; 
+  router.push('/'); 
 }
 
-// 页面加载时检查登录状态
 onMounted(() => {
   checkLoginStatus()
 })
-
 </script>
 
 <template>
@@ -77,7 +77,6 @@ onMounted(() => {
         </div>
       </div>
 
-      <!-- 根据登录状态动态显示登录/注销 -->
       <ul class="nav-right">
         <li v-if="!isLoggedIn" class="menu-item"><router-link to="/login">登录</router-link></li>
         <li v-if="!isLoggedIn" class="menu-item"><router-link to="/register">注册</router-link></li>
@@ -92,7 +91,7 @@ onMounted(() => {
 </template>
 
 <style>
-/* 设置蓝绿渐变的背景 */
+
 body {
   background: linear-gradient(to right, #3fb775, #00a8d7); 
   min-height: 100vh;
@@ -100,7 +99,6 @@ body {
   padding: 0;
 }
 
-/* 设置导航栏 */
 .navbar {
   position: fixed; 
   top: 0; 
@@ -115,8 +113,8 @@ body {
 
 .nav-center {
   display: flex;
-  flex-grow: 1; /* 允许此部分扩展以居中 */
-  justify-content: center; /* 将子元素居中 */
+  flex-grow: 1;
+  justify-content: center; 
 }
 
 .nav-right {
@@ -131,7 +129,7 @@ body {
   padding: 0;
   display: flex;
 }
-/* 搜索栏容器 */
+
 .search-container {
   display: flex;
   align-items: center;
@@ -160,10 +158,9 @@ body {
 
 .search-input:focus {
   outline: none;
-  border: 1px solid #00a8d7; /* 设置搜索框的边框样式 */
+  border: 1px solid #00a8d7; 
 }
 
-/* 导航栏菜单项样式 */
 .navbar .menu-item {
   position: relative;
   margin-right: 20px;
@@ -219,11 +216,11 @@ body {
   transition: opacity 0.5s ease;
 }
 
-.fade-enter, .fade-leave-to /* .fade-leave-active 在 Vue 2.x 中 */ {
+.fade-enter, .fade-leave-to  {
   opacity: 0;
 }
 
-/* 保证整个页面的内容居中 */
+
 #app {
   text-align: center;
   display: flex;
@@ -235,7 +232,6 @@ body {
   width: 100%; 
 }
 
-/* 响应式布局 */
 @media screen and (max-width: 768px) {
   .navbar ul {
     flex-direction: column; 

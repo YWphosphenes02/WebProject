@@ -2,9 +2,8 @@
 import { ref } from 'vue'
 import axios from 'axios'
 import { useRouter } from 'vue-router'
-import { useCookies } from 'vue-cookies'
+import Cookies from 'js-cookie'
 
-const [cookies] = useCookies()
 const email = ref('')
 const password = ref('')
 const router = useRouter()
@@ -17,10 +16,10 @@ async function login() {
       password: password.value,
     })
     console.log('Login success:', response.data)
-    // 将 token 存储到 cookies 中
-    cookies.set('token', response.data.token, '2d'); // 设置 token 有效期为 2 天
-    // 登录成功后导航到首页
-    router.push('/')
+    if (response.data.token) {
+      Cookies.set('token', response.data.token, { expires: 2 }); // 设置 token 有效期为 2 天
+      router.push('/')
+    }
   } catch (error) {
     console.error('Login error:', error)
     alert(error.response.data.error || '登录失败，请重试')

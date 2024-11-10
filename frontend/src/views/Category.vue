@@ -15,7 +15,7 @@
 
 <script>
 import axios from 'axios';
-import MarkdownEditor from './MarkdownEditor.vue'; // 确保路径正确
+import MarkdownEditor from './MarkdownEditor.vue'; 
 
 const host = "http://127.0.0.1:5000";
 

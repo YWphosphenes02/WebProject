@@ -123,8 +123,6 @@
     z-index: 3; 
   }
   
-
-  
   /* 重要性介绍文字*/
   .importance-text {
     opacity: 0;
