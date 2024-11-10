@@ -3,13 +3,17 @@ import { marked } from 'marked'
 import { debounce } from 'lodash-es'
 import { ref, computed } from 'vue'
 
-const input = ref('# hello')
+const props = defineProps({
+  content: String
+});
 
-const output = computed(() => marked(input.value))
+const input = ref(props.content);
+
+const output = computed(() => marked(input.value));
 
 const update = debounce((e) => {
-  input.value = e.target.value
-}, 100)
+  input.value = e.target.value;
+}, 100);
 </script>
 
 <template>

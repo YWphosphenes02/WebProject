@@ -2,7 +2,9 @@
 import { ref } from 'vue'
 import axios from 'axios'
 import { useRouter } from 'vue-router'
+import { useCookies } from 'vue-cookies'
 
+const [cookies] = useCookies()
 const email = ref('')
 const password = ref('')
 const confirmPassword = ref('')
@@ -21,11 +23,8 @@ async function register() {
       password: password.value,
     })
     console.log('Register success:', response.data)
-    // 将token存储到cookies中
-    if (response.headers['set-cookie']) {
-      const cookies = response.headers['set-cookie'].map(cookie => cookie.split(';')[0]).join('; ')
-      document.cookie = cookies
-    }
+    // 将 token 存储到 cookies 中
+    cookies.set('token', response.data.token, '2d'); // 设置 token 有效期为 2 天
     // 注册成功后导航到登录页面
     router.push('/login')
   } catch (error) {

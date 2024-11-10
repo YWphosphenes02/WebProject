@@ -3,6 +3,7 @@ import uuid
 from flask import request, Flask, make_response, abort, jsonify
 from flask_cors import CORS
 from datetime import datetime, timezone
+import hashlib
 
 # 设置 MongoDB 连接 URI
 uri = "mongodb://localhost:27017/"
@@ -27,13 +28,16 @@ ErrorCode = {
     '10022': '无权限'  # 权限不足
 }
 
-# 密码不明文直接存储，选择生成一个 token 来验证身份
-def generateToken(email, password):
-    return email + password  # 直接返回用户名和密码作为 token
+
 
 def encryptText(text):
-    return text  # 直接返回明文密码
-    pass  # 实现加密逻辑
+    return hashlib.md5(text).hexdigest
+
+# 密码不明文直接存储，选择生成一个 token 来验证身份
+def generateToken(email, password):
+    hash1 = encryptText(password)
+    hash2 = encryptText(email+hash1)
+    return hash2
 
 # 检查用户名是否已存在
 def checkIfUserNameExist(email):
@@ -111,6 +115,11 @@ def article_get_by_id(article_id):
 # 根据类别获取文章
 def articles_get_by_category(category):
     articles = list(articles_collection.find({"category": category}))  # 根据类别查找文章
+    return articles  # 返回文章列表
+
+# 根据标题获取文章
+def articles_get_by_title(title):
+    articles = list(articles_collection.find({"title": title}))  # 根据标题查找文章
     return articles  # 返回文章列表
 
 # 根据文章 ID 删除特定文章
@@ -258,6 +267,15 @@ def get_article_by_id():
     else:
         return make_response({"error": "Article not found"}, 404)  # 文章不存在，返回 404
 
+@app.route('/get_article_by_title', methods=['GET'])
+def get_article_by_title():
+    title = request.args.get("title")
+    if not title:
+        return make_response({"error": "Missing title"}, 400)
+    
+    article = articles_get_by_title(title)
+    return make_response(article, 200)
+
 # 根据类别获取文章接口
 @app.route('/get_articles_by_category', methods=['GET'])
 def get_articles_by_category():
@@ -267,3 +285,8 @@ def get_articles_by_category():
 
     articles = articles_get_by_category(category)  # 获取该类别的文章
     return make_response(articles, 200)  # 返回文章列表，状态码 200
+
+if __name__ == "__main__":
+    app.run()
+
+    

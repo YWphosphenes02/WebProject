@@ -2,52 +2,25 @@
 import { RouterLink, RouterView } from 'vue-router'
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
+import { useCookies } from 'vue-cookies' // 确保安装了 vue-cookies
 
+const [cookies] = useCookies()
 const isSearchExpanded = ref(false)
 const searchQuery = ref('')
 const host = "http://127.0.0.1:5000"
-
-// 用于保存登录状态
 const isLoggedIn = ref(false)
 
-function toggleSearch() {
-  isSearchExpanded.value = !isSearchExpanded.value
-}
-
-function collapseSearch() {
-  isSearchExpanded.value = false
-}
-
-// 搜索功能
-async function performSearch() {
-  if (searchQuery.value) {
-    try {
-      const response = await axios.get(`${host}/search`, { params: { keyword: searchQuery.value } })
-      console.log('Search results:', response.data)
-    } catch (error) {
-      console.error('Error searching:', error)
-    }
-  }
-}
-
-// 检查用户登录状态
-async function checkLoginStatus() {
-  try {
-    const response = await axios.get(`${host}/check-login`)
-    isLoggedIn.value = response.data.loggedIn
-  } catch (error) {
-    console.error('Error checking login status:', error)
-  }
+// 用于保存登录状态
+function checkLoginStatus() {
+  const token = cookies.get('token');
+  isLoggedIn.value = !!token; // 如果 token 存在，则用户已登录
 }
 
 // 登出功能
-async function logout() {
-  try {
-    await axios.post(`${host}/logout`)  // 调用后端登出 API
-    isLoggedIn.value = false  // 更新状态为未登录
-  } catch (error) {
-    console.error('Error logging out:', error)
-  }
+function logout() {
+  cookies.remove('token'); // 清除 cookies 中的 token
+  isLoggedIn.value = false; // 更新状态为未登录
+  router.push('/'); // 重定向到首页
 }
 
 // 页面加载时检查登录状态

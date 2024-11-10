@@ -4,7 +4,7 @@
     <div v-if="articles.length">
       <div v-for="article in articles" :key="article._id">
         <h2>{{ article.title }}</h2> <!-- 根据后端字段，使用 title 显示文章标题 -->
-        <p v-html="article.content_html"></p> <!-- 使用 v-html 显示 HTML 格式化后的内容 -->
+        <MarkdownEditor :content="article.content" /> <!-- 使用 MarkdownEditor 显示 Markdown 内容 -->
       </div>
     </div>
     <div v-else>
@@ -15,9 +15,14 @@
 
 <script>
 import axios from 'axios';
-const host = "http://127.0.0.1:5000"
+import MarkdownEditor from './MarkdownEditor.vue'; // 确保路径正确
+
+const host = "http://127.0.0.1:5000";
 
 export default {
+  components: {
+    MarkdownEditor
+  },
   props: ['name'], // 接收从路由传递的参数
   data() {
     return {
