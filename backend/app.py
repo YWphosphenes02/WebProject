@@ -1,9 +1,11 @@
+import json
 from pymongo import MongoClient
 import uuid
 from flask import request, Flask, make_response, abort
 from flask_cors import CORS
 import hashlib
-
+import base64
+import time
 # 设置 MongoDB 连接 URI
 uri = "mongodb://localhost:27017/"
 client = MongoClient(uri)  # 创建 MongoClient 实例
@@ -30,7 +32,7 @@ ErrorCode = {
 
 
 def encryptText(text):
-    return hashlib.md5(text).hexdigest
+    return str(hashlib.md5(str(text).encode()).hexdigest())
 
 # 密码不明文直接存储，选择生成一个 token 来验证身份
 def generateToken(email, password):
@@ -143,11 +145,13 @@ def get_permission(token):
 # 成功则返回 { userid: str, email: str, token: str }
 @app.route('/register', methods=['POST'])
 def register():
-    data = request.form.to_dict()  # 获取请求的 JSON 数据
+    data = request.get_data().decode("utf-8")  # 获取请求的 JSON 数据
+    print(data)  # 获取请求的 JSON 数据
+    data = json.loads(data)
     if not data or 'email' not in data or 'password' not in data:
         return make_response({"error": "Missing email or password"}, 400)  # 请求数据缺失，返回 400
 
-    result = user_register(data["email"], data["password"], data.get("permissions", "guest"))  # 注册用户
+    result = user_register(data["email"], data["password"], data.get("permissions", "user"))  # 注册用户
 
     if result[0]:
         return make_response({"user_id": result[1], "email": result[2], "token": result[3]}, 201)  # 注册成功，返回 201
@@ -159,7 +163,9 @@ def register():
 # 成功则返回 { userid: str, email: str, token: str }
 @app.route('/login', methods=['POST'])
 def login():
-    data = request.form.to_dict()  # 获取请求的 JSON 数据
+    data = request.get_data().decode("utf-8")  # 获取请求的 JSON 数据
+    print(data)  # 获取请求的 JSON 数据
+    data = json.loads(data)
     if not data or 'email' not in data or 'password' not in data:
         return make_response({"error": "Missing email or password"}, 400)  # 请求数据缺失，返回 400
 
@@ -184,7 +190,9 @@ def update():
     if permission[1] == 'guest':
         return make_response({"error": ErrorCode['10022']}, 403)  # 权限不足，返回 403
 
-    data = request.form.to_dict()  # 获取请求的 JSON 数据
+    data = request.get_data().decode("utf-8")  # 获取请求的 JSON 数据
+    print(data)  # 获取请求的 JSON 数据
+    data = json.loads(data)  # 获取请求的 JSON 数据
     if not data or 'id' not in data or 'title' not in data or 'content' not in data or 'category' not in data:
         return make_response({"error": "Missing article data"}, 400)  # 请求数据缺失，返回 400
 
@@ -209,7 +217,9 @@ def delete():
     if permission[1] != 'admin':
         return make_response({"error": ErrorCode['10022']}, 403)  # 权限不足，返回 403
 
-    data = request.form.to_dict()  # 获取请求的 JSON 数据
+    data = request.get_data().decode("utf-8")  # 获取请求的 JSON 数据
+    print(data)  # 获取请求的 JSON 数据
+    data = json.loads(data)
     if not data or 'id' not in data:
         return make_response({"error": "Missing article ID"}, 400)  # 请求数据缺失，返回 400
 
@@ -234,7 +244,9 @@ def insert():
     if permission[1] != 'admin':
         return make_response({"error": ErrorCode['10022']}, 403)  # 权限不足，返回 403
 
-    data = request.form.to_dict()  # 获取请求的 JSON 数据
+    data = request.get_data().decode("utf-8")  # 获取请求的 JSON 数据
+    print(data)  # 获取请求的 JSON 数据
+    data = json.loads(data)
     if not data or 'title' not in data or 'content' not in data or 'author' not in data or 'category' not in data or 'create_time' not in data:
         return make_response({"error": "Missing article data"}, 400)  # 请求数据缺失，返回 400
 
@@ -279,13 +291,46 @@ def get_article_by_title():
 @app.route('/get_articles_by_category', methods=['GET'])
 def get_articles_by_category():
     category = request.args.get("category")  # 从查询参数获取类别
+    # category = {category[0] : category[1]}  # 从查询参数获取类别
+    print(category)
     if not category:
         return make_response({"error": "Missing category"}, 400)  # 请求数据缺失，返回 400
 
     articles = articles_get_by_category(category)  # 获取该类别的文章
     return make_response(articles, 200)  # 返回文章列表，状态码 200
 
+def initArticle():
+    inited = articles_collection.find_one({"inited": True})
+    print(inited)
+    if inited:
+        return
+    
+    import os
+
+    path = os.path.abspath(os.path.dirname(__file__))
+
+    articles = [
+        ('originArticle/Community.md', 'community'),
+        ('originArticle/ForestResource.md', 'forest'),
+        ('originArticle/GovernmentPolicy.md', 'policy'),
+        ('originArticle/InternationalCooperation.md', 'international'),
+        ('originArticle/MineralResourse.md', 'minerals'),
+        ('originArticle/News.md', 'news'),
+        ('originArticle/WaterResource.md', 'water')
+    ]
+
+    for article in articles:
+        with open(path+'/'+article[0], 'r') as f:
+            text = f.read()
+            content = base64.b64encode(text.encode()).decode()
+            print(content)
+            title = text.split('\n')[0][2:]
+            article_insert(title, content, "admin", article[1], str(int(time.time())))
+    articles_collection.insert_one({"inited": True})
+
 if __name__ == "__main__":
+    superuser()
+    initArticle()
     app.run()
 
     

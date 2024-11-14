@@ -17,9 +17,14 @@ async function register() {
   }
 
   try {
-    const response = await axios.post(`${host}/register`, {
-      email: email.value,
-      password: password.value,
+    const response = await axios({
+      method: 'post',
+      url: `${host}/register`,
+      data: {
+        'email': email.value,
+        'password': password.value
+      },
+      withCredentials: false
     })
     console.log('Register success:', response.data)
     if (response.data.token) {

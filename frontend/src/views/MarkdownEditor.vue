@@ -40,6 +40,7 @@ body {
   height: 100%;
   box-sizing: border-box;
   padding: 0 20px;
+  color: #000;
 }
 
 .input {

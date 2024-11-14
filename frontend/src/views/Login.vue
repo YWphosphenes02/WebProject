@@ -11,9 +11,14 @@ const host = "http://127.0.0.1:5000"
 
 async function login() {
   try {
-    const response = await axios.post(`${host}/login`, {
-      email: email.value,
-      password: password.value,
+    const response = await axios({
+      method: 'post',
+      url: `${host}/login`,
+      data: {
+        'email': email.value,
+        'password': password.value
+      },
+      withCredentials: false
     })
     console.log('Login success:', response.data)
     if (response.data.token) {
