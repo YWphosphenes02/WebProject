@@ -26,6 +26,7 @@ const update = debounce((e) => {
 <style>
 body {
   margin: 0;
+  width: 100%;
 }
 
 .editor {
@@ -40,7 +41,7 @@ body {
   height: 100%;
   box-sizing: border-box;
   padding: 0 20px;
-  color: #000;
+  color: #000000db;
 }
 
 .input {
@@ -55,6 +56,17 @@ body {
 }
 
 code {
-  color: #f66;
+  color: #f66;  
 }
+
+a {
+  color: #005ab3; /* 修改链接颜色 */
+  text-decoration: none; /* 去除下划线 */
+}
+
+a:hover {
+  color: #002f95; 
+  text-decoration: underline; 
+}
+
 </style>

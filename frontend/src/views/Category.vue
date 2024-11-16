@@ -25,9 +25,9 @@ const host = "http://127.0.0.1:5000";
 const article_markdown = ref("")
 
 export default {
-  // components: {
-  //   MarkdownEditor
-  // },
+  components: {
+    MarkdownEditor
+  },
   props: ['name'], // 接收从路由传递的参数
   data() {
     return {
@@ -70,14 +70,12 @@ export default {
 };
 </script>
 
-<style>
+<!-- <style>
 /* 设置整体背景和字体颜色 */
 body {
   background: linear-gradient(to right, #3fb775, #00a8d7); 
   min-height: 100vh;
-  margin: 0;
-  padding: 0;
-  color: black; /* 设置默认字体颜色为黑色 */
+  width: 100%;
 }
 
 /* 设置文章内容区域样式 */
@@ -86,7 +84,6 @@ body {
   margin: 0 auto; /* 居中显示 */
   padding: 20px;
   box-sizing: border-box;
-  color: black; /* 确保文章内容字体颜色为黑色 */
 }
 
 /* 设置标题和段落样式 */
@@ -109,4 +106,4 @@ a:hover {
   color: #35008b; /* 鼠标悬浮时链接颜色 */
   text-decoration: underline; /* 鼠标悬浮时添加下划线 */
 }
-</style>
+</style> -->

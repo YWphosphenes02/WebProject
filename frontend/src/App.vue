@@ -28,8 +28,7 @@ async function performSearch() {
       const response = await axios.get(`${host}/get_article_by_title?title=${searchQuery.value}`)
       console.log('Search results:', response.data)
       // 处理搜索结果，例如导航到搜索结果页面，本次时间仓促，暂时未能实现
-      // router.push('/search-results')
-      alert('搜索结果暂未实现')
+      router.push('/search-results')
     } catch (error) {
       console.error('Error searching:', error)
     }
