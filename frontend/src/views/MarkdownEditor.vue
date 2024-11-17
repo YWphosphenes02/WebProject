@@ -37,11 +37,11 @@ body {
 .input,
 .output {
   overflow: auto;
-  width: 50%;
-  height: 100%;
+  text-align: left;
   box-sizing: border-box;
-  padding: 0 20px;
-  color: #000000db;
+  padding: 40px;
+  color: #ffffffdb;
+  font-size: 2.7ch;
 }
 
 .input {
@@ -50,7 +50,7 @@ body {
   resize: none;
   outline: none;
   background-color: #f6f6f6;
-  font-size: 14px;
+  font-size: 17px;
   font-family: 'Monaco', courier, monospace;
   padding: 20px;
 }
@@ -60,12 +60,12 @@ code {
 }
 
 a {
-  color: #005ab3; /* 修改链接颜色 */
+  color: #4861efce; /* 修改链接颜色 */
   text-decoration: none; /* 去除下划线 */
 }
 
 a:hover {
-  color: #002f95; 
+  color: #004a9f; 
   text-decoration: underline; 
 }
 

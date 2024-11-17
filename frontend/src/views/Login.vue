@@ -23,7 +23,9 @@ async function login() {
     console.log('Login success:', response.data)
     if (response.data.token) {
       Cookies.set('token', response.data.token, { expires: 2 }); // 设置 token 有效期为 2 天
-      router.push('/')
+      router.push('/').then(() => {
+        window.location.reload();
+      });
     }
   } catch (error) {
     console.error('Login error:', error)

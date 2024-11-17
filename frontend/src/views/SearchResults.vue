@@ -2,13 +2,7 @@
   <div>
     <h1>{{ categoryTitle }} 的文章</h1>
     <div class="output" v-html="content"></div>
-    <div v-if="articles.length">
-      <!-- <div v-for="article in articles" :key="article._id">
-        <h2>{{ article.title }}</h2> 
-        <p>{{ article }}</p>
-        <MarkdownEditor :content="article.content" /> 
-      </div> -->
-    </div>
+    <div v-if="articles.length"></div>
     <div v-else>
       <p>没有找到相关的内容。</p>
     </div>

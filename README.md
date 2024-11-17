@@ -86,14 +86,14 @@ npm run dev
 
 ```bash
 cd backend
-pip install 
+pip install -r requirements.txt
 
 ```
 
 运行项目：
 
 ```bash
-flask run
+python app.py
 ```
 
 注意：请确保 所有环境都已按照上述步骤配置完毕。若仍然无法运行，请联系发送来的邮箱。

@@ -140,6 +140,10 @@ def get_permission(token):
         return (False, 10014)  # 身份校验未通过
     return (True, user["permissions"])  # 返回用户权限
 
+@app.route('/', methods=['GET'])
+def root():
+    return "Hello, World!"
+
 # 用户注册接口
 # 传入 data: { email: str, password: str[, permissions: str] } 
 # 成功则返回 { userid: str, email: str, token: str }
@@ -281,11 +285,15 @@ def get_article_by_id():
 @app.route('/get_article_by_title', methods=['GET'])
 def get_article_by_title():
     title = request.args.get("title")
+    print(title)
     if not title:
         return make_response({"error": "Missing title"}, 400)
     
     article = articles_get_by_title(title)
-    return make_response(article, 200)
+    if article:
+        return make_response(article, 200)  # 文章存在，返回 200
+    else:
+        return make_response({"error": "Articles not found"}, 404)  # 文章不存在，返回 404
 
 # 根据类别获取文章接口
 @app.route('/get_articles_by_category', methods=['GET'])
@@ -297,7 +305,10 @@ def get_articles_by_category():
         return make_response({"error": "Missing category"}, 400)  # 请求数据缺失，返回 400
 
     articles = articles_get_by_category(category)  # 获取该类别的文章
-    return make_response(articles, 200)  # 返回文章列表，状态码 200
+    if articles:
+        return make_response(articles, 200)  # 文章存在，返回 200
+    else:
+        return make_response({"error": "Articles not found"}, 404)  # 文章不存在，返回 404
 
 def initArticle():
     inited = articles_collection.find_one({"inited": True})
